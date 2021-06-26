@@ -7,6 +7,7 @@ import six
 import argparse
 import sys
 import json
+import gym_super_mario_bros
 
 
 import logging

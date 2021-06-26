@@ -59,6 +59,8 @@ func main() {
 		obs = newObs
 		fmt.Println("reward:", rew, " -- observation:", obs)
 		if done {
+			fmt.Println("done")
+			//client.Reset(id)
 			break
 		}
 	}
