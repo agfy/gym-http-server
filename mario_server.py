@@ -7,6 +7,7 @@ import six
 import argparse
 import sys
 import json
+import time
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
@@ -15,6 +16,16 @@ from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 import logging
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
+
+sky = [104, 136, 252]
+white = [252, 252, 252]
+shit_in_sky = [252, 160, 68]
+black = [0, 0, 0]
+brown = [228, 92, 16]
+green = [0, 168, 0]
+light_green = [184, 248, 24]
+red = [248, 56, 0]
+bloody_red = [136, 20, 0]
 
 ########## Container for environments ##########
 class Envs(object):
@@ -62,10 +73,25 @@ class Envs(object):
 
     def reset(self, instance_id):
         env = self._lookup_env(instance_id)
-        obs = env.reset()
-        return env.observation_space.to_jsonable(obs)
+        observation = env.reset()
+        data = np.zeros((32, 30))
+
+        for x in range(32):
+            for y in range(30):
+                if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
+                        (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
+                    data[x, y] = 0
+                elif (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
+                    data[x, y] = 1
+                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all():
+                    data[x, y] = 2
+                else:
+                    print("unsupported color  ", observation[y*8, x*8])
+
+        return env.observation_space.to_jsonable(data)
 
     def step(self, instance_id, action, render):
+        #print("start", time.time())
         env = self._lookup_env(instance_id)
         if isinstance( action, six.integer_types ):
             nice_action = action
@@ -74,7 +100,21 @@ class Envs(object):
         if render:
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
-        obs_jsonable = env.observation_space.to_jsonable(observation)
+        data = np.zeros((32, 30))
+
+        for x in range(32):
+            for y in range(30):
+                if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
+                        (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
+                    data[x, y] = 0
+                elif (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
+                    data[x, y] = 1
+                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all():
+                    data[x, y] = 2
+                else:
+                    print("unsupported color  ", observation[y*8, x*8])
+        obs_jsonable = env.observation_space.to_jsonable(data)
+        #print("end  ", time.time())
         return [obs_jsonable, reward, done, info]
 
     def get_action_space_contains(self, instance_id, x):
