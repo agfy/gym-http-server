@@ -26,6 +26,7 @@ green = [0, 168, 0]
 light_green = [184, 248, 24]
 red = [248, 56, 0]
 bloody_red = [136, 20, 0]
+yellow = [240, 208, 176]
 
 ########## Container for environments ##########
 class Envs(object):
@@ -81,9 +82,9 @@ class Envs(object):
                 if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
                         (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
                     data[x, y] = 0
-                elif (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
+                elif (observation[y*8, x*8] == yellow).all():
                     data[x, y] = 1
-                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all():
+                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all() or (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
                     data[x, y] = 2
                 else:
                     print("unsupported color  ", observation[y*8, x*8])
@@ -107,9 +108,9 @@ class Envs(object):
                 if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
                         (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
                     data[x, y] = 0
-                elif (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
+                elif (observation[y*8, x*8] == yellow).all():
                     data[x, y] = 1
-                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all():
+                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all() or (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
                     data[x, y] = 2
                 else:
                     print("unsupported color  ", observation[y*8, x*8])
