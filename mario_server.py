@@ -77,19 +77,38 @@ class Envs(object):
         observation = env.reset()
         data = np.zeros((32, 30))
 
-        for x in range(32):
-            for y in range(30):
-                if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
-                        (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
-                    data[x, y] = 0
-                elif (observation[y*8, x*8] == yellow).all():
-                    data[x, y] = 1
-                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all() or (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
-                    data[x, y] = 2
+        for x in list(range(4, 256, 8)):
+            for y in list(range(4, 240, 8)):
+                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
+                        (observation[y, x] == green).all() or (observation[y, x] == red).all()):
+                    data[int(x/8), int(y/8)] = 0
+                elif (observation[y, x] == yellow).all():
+                    data[int(x/8), int(y/8)] = 1
+                elif (observation[y, x] == brown).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
+                    data[int(x/8), int(y/8)] = 2
                 else:
-                    print("unsupported color  ", observation[y*8, x*8])
+                    print("unsupported color  ", observation[y, x])
 
-        return env.observation_space.to_jsonable(data)
+        prevValue = -1
+        count = 0
+        zipped_data = []
+        for j in range(30):
+            for i in range(32):
+                if prevValue == -1:
+                    prevValue = int(data[i][j])
+                    count = 1
+                    continue
+                count += 1
+                if prevValue != int(data[i][j]):
+                    zipped_data.append(prevValue)
+                    zipped_data.append(count)
+                    prevValue = int(data[i][j])
+                    count = 0
+        if count != 0:
+            zipped_data.append(prevValue)
+            zipped_data.append(count)
+
+        return env.observation_space.to_jsonable(zipped_data)
 
     def step(self, instance_id, action, render):
         #print("start", time.time())
@@ -101,20 +120,41 @@ class Envs(object):
         if render:
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
+        #[observation, reward, done, info] = env.step(env.action_space.sample())
         data = np.zeros((32, 30))
 
-        for x in range(32):
-            for y in range(30):
-                if ((observation[y*8, x*8] == sky).all() or (observation[y*8, x*8] == white).all() or (observation[y*8, x*8] == black).all() or
-                        (observation[y*8, x*8] == green).all() or (observation[y*8, x*8] == red).all()):
-                    data[x, y] = 0
-                elif (observation[y*8, x*8] == yellow).all():
-                    data[x, y] = 1
-                elif (observation[y*8, x*8] == brown).all() or (observation[y*8, x*8] == light_green).all() or (observation[y*8, x*8] == shit_in_sky).all() or (observation[y*8, x*8] == bloody_red).all():
-                    data[x, y] = 2
+        for x in list(range(4, 256, 8)):
+            for y in list(range(4, 240, 8)):
+                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
+                        (observation[y, x] == green).all() or (observation[y, x] == red).all()):
+                    data[int(x/8), int(y/8)] = 0
+                elif (observation[y, x] == yellow).all():
+                    data[int(x/8), int(y/8)] = 1
+                elif (observation[y, x] == brown).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
+                    data[int(x/8), int(y/8)] = 2
                 else:
-                    print("unsupported color  ", observation[y*8, x*8])
-        obs_jsonable = env.observation_space.to_jsonable(data)
+                    print("unsupported color  ", observation[y, x])
+
+        prevValue = -1
+        count = 0
+        zipped_data = []
+        for j in range(30):
+            for i in range(32):
+                if prevValue == -1:
+                    prevValue = int(data[i][j])
+                    count = 1
+                    continue
+                count += 1
+                if prevValue != int(data[i][j]):
+                    zipped_data.append(prevValue)
+                    zipped_data.append(count)
+                    prevValue = int(data[i][j])
+                    count = 0
+        if count != 0:
+            zipped_data.append(prevValue)
+            zipped_data.append(count)
+
+        obs_jsonable = env.observation_space.to_jsonable(zipped_data)
         #print("end  ", time.time())
         return [obs_jsonable, reward, done, info]
 
