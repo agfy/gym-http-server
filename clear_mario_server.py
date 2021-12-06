@@ -7,26 +7,15 @@ import six
 import argparse
 import sys
 import json
-import time
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
-
 import logging
+
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
 
-sky = [104, 136, 252]
-white = [252, 252, 252]
-shit_in_sky = [252, 160, 68]
-black = [0, 0, 0]
-brown = [228, 92, 16]
-green = [0, 168, 0]
-light_green = [184, 248, 24]
-red = [248, 56, 0]
-bloody_red = [136, 20, 0]
-yellow = [240, 208, 176]
 
 ########## Container for environments ##########
 class Envs(object):
@@ -40,6 +29,7 @@ class Envs(object):
     use of this instance_id to identify which environment
     should be manipulated.
     """
+
     def __init__(self):
         self.envs = {}
         self.id_len = 8
@@ -74,86 +64,19 @@ class Envs(object):
 
     def reset(self, instance_id):
         env = self._lookup_env(instance_id)
-        observation = env.reset()
-        data = np.zeros((32, 30))
-
-        for x in list(range(4, 256, 8)):
-            for y in list(range(4, 240, 8)):
-                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
-                        (observation[y, x] == red).all()):
-                    data[int(x/8), int(y/8)] = 0
-                elif (observation[y, x] == brown).all() or (observation[y, x] == green).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
-                    data[int(x/8), int(y/8)] = 1
-                else:
-                    print("unsupported color  ", observation[y, x])
-
-        data[11, 3] = 0#coin in sky
-        prevValue = -1
-        count = 0
-        zipped_data = []
-        for j in range(30):
-            for i in range(32):
-                if prevValue == -1:
-                    prevValue = int(data[i][j])
-                    count = 1
-                    continue
-                count += 1
-                if prevValue != int(data[i][j]):
-                    zipped_data.append(prevValue)
-                    zipped_data.append(count)
-                    prevValue = int(data[i][j])
-                    count = 0
-        if count != 0:
-            zipped_data.append(prevValue)
-            zipped_data.append(count)
-
-        return env.observation_space.to_jsonable(zipped_data)
+        obs = env.reset()
+        return env.observation_space.to_jsonable(obs)
 
     def step(self, instance_id, action, render):
-        #print("start", time.time())
         env = self._lookup_env(instance_id)
-        if isinstance( action, six.integer_types ):
+        if isinstance(action, six.integer_types):
             nice_action = action
         else:
             nice_action = np.array(action)
         if render:
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
-        #[observation, reward, done, info] = env.step(env.action_space.sample())
-        data = np.zeros((32, 30))
-
-        for x in list(range(4, 256, 8)):
-            for y in list(range(4, 240, 8)):
-                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
-                        (observation[y, x] == red).all()):
-                    data[int(x/8), int(y/8)] = 0
-                elif (observation[y, x] == brown).all() or (observation[y, x] == green).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
-                    data[int(x/8), int(y/8)] = 1
-                else:
-                    print("unsupported color  ", observation[y, x])
-        data[11, 3] = 0  # coin in sky
-
-        prevValue = -1
-        count = 0
-        zipped_data = []
-        for j in range(30):
-            for i in range(32):
-                if prevValue == -1:
-                    prevValue = int(data[i][j])
-                    count = 1
-                    continue
-                count += 1
-                if prevValue != int(data[i][j]):
-                    zipped_data.append(prevValue)
-                    zipped_data.append(count)
-                    prevValue = int(data[i][j])
-                    count = 0
-        if count != 0:
-            zipped_data.append(prevValue)
-            zipped_data.append(count)
-
-        obs_jsonable = env.observation_space.to_jsonable(zipped_data)
-        #print("end  ", time.time())
+        obs_jsonable = env.observation_space.to_jsonable(observation)
         return [obs_jsonable, reward, done, info]
 
     def get_action_space_contains(self, instance_id, x):
@@ -200,11 +123,12 @@ class Envs(object):
             # Many newer JSON parsers allow it, but many don't. Notably python json
             # module can read and write such floats. So we only here fix "export version",
             # also make it flat.
-            info['low']  = [(x if x != -np.inf else -1e100) for x in np.array(space.low ).flatten()]
+            info['low'] = [(x if x != -np.inf else -1e100) for x in np.array(space.low).flatten()]
             info['high'] = [(x if x != +np.inf else +1e100) for x in np.array(space.high).flatten()]
         elif info['name'] == 'HighLow':
             info['num_rows'] = space.num_rows
-            info['matrix'] = [((float(x) if x != -np.inf else -1e100) if x != +np.inf else +1e100) for x in np.array(space.matrix).flatten()]
+            info['matrix'] = [((float(x) if x != -np.inf else -1e100) if x != +np.inf else +1e100) for x in
+                              np.array(space.matrix).flatten()]
         return info
 
     def monitor_start(self, instance_id, directory, force, resume, video_callable):
@@ -213,7 +137,7 @@ class Envs(object):
             v_c = lambda count: False
         else:
             v_c = lambda count: count % video_callable == 0
-        self.envs[instance_id] = gym.wrappers.Monitor(env, directory, force=force, resume=resume, video_callable=v_c) 
+        self.envs[instance_id] = gym.wrappers.Monitor(env, directory, force=force, resume=resume, video_callable=v_c)
 
     def monitor_close(self, instance_id):
         env = self._lookup_env(instance_id)
@@ -224,13 +148,17 @@ class Envs(object):
         env.close()
         self._remove_env(instance_id)
 
+
 ########## App setup ##########
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 envs = Envs()
+
+
 ########## Error handling ##########
 class InvalidUsage(Exception):
     status_code = 400
+
     def __init__(self, message, status_code=None, payload=None):
         Exception.__init__(self)
         self.message = message
@@ -243,31 +171,38 @@ class InvalidUsage(Exception):
         rv['message'] = self.message
         return rv
 
+
 def get_required_param(json, param):
     if json is None:
         logger.info("Request is not a valid json")
         raise InvalidUsage("Request is not a valid json")
     value = json.get(param, None)
-    if (value is None) or (value=='') or (value==[]):
+    if (value is None) or (value == '') or (value == []):
         logger.info("A required request parameter '{}' had value {}".format(param, value))
         raise InvalidUsage("A required request parameter '{}' was not provided".format(param))
     return value
+
 
 def get_optional_param(json, param, default):
     if json is None:
         logger.info("Request is not a valid json")
         raise InvalidUsage("Request is not a valid json")
     value = json.get(param, None)
-    if (value is None) or (value=='') or (value==[]):
-        logger.info("An optional request parameter '{}' had value {} and was replaced with default value {}".format(param, value, default))
+    if (value is None) or (value == '') or (value == []):
+        logger.info(
+            "An optional request parameter '{}' had value {} and was replaced with default value {}".format(param,
+                                                                                                            value,
+                                                                                                            default))
         value = default
     return value
+
 
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
 
 ########## API route definitions ##########
 @app.route('/v1/envs/', methods=['POST'])
@@ -287,7 +222,8 @@ def env_create():
     env_id = get_required_param(request.get_json(), 'env_id')
     seed = get_optional_param(request.get_json(), 'seed', None)
     instance_id = envs.create(env_id, seed)
-    return jsonify(instance_id = instance_id)
+    return jsonify(instance_id=instance_id)
+
 
 @app.route('/v1/envs/', methods=['GET'])
 def env_list_all():
@@ -300,7 +236,8 @@ def env_list_all():
         on the server
     """
     all_envs = envs.list_all()
-    return jsonify(all_envs = all_envs)
+    return jsonify(all_envs=all_envs)
+
 
 @app.route('/v1/envs/<instance_id>/reset/', methods=['POST'])
 def env_reset(instance_id):
@@ -317,7 +254,8 @@ def env_reset(instance_id):
     observation = envs.reset(instance_id)
     if np.isscalar(observation):
         observation = observation.item()
-    return jsonify(observation = observation)
+    return jsonify(observation=observation)
+
 
 @app.route('/v1/envs/<instance_id>/step/', methods=['POST'])
 def env_step(instance_id):
@@ -341,6 +279,7 @@ def env_step(instance_id):
     [obs_jsonable, reward, done, info] = envs.step(instance_id, action, render)
     return jsonify(observation=obs_jsonable, reward=int(reward), done=bool(done))
 
+
 @app.route('/v1/envs/<instance_id>/action_space/', methods=['GET'])
 def env_action_space_info(instance_id):
     """
@@ -356,7 +295,8 @@ def env_action_space_info(instance_id):
     space to space
     """
     info = envs.get_action_space_info(instance_id)
-    return jsonify(info = info)
+    return jsonify(info=info)
+
 
 @app.route('/v1/envs/<instance_id>/action_space/sample', methods=['GET'])
 def env_action_space_sample(instance_id):
@@ -369,25 +309,27 @@ def env_action_space_sample(instance_id):
     Returns:
 
     	- action: a randomly sampled element belonging to the action_space
-    """  
+    """
     action = envs.get_action_space_sample(instance_id)
-    return jsonify(action = action)
+    return jsonify(action=action)
+
 
 @app.route('/v1/envs/<instance_id>/action_space/contains/<x>', methods=['GET'])
 def env_action_space_contains(instance_id, x):
     """
     Assess that value is a member of the env's action_space
-    
+
     Parameters:
         - instance_id: a short identifier (such as '3c657dbc')
         for the environment instance
 	    - x: the value to be checked as member
     Returns:
         - member: whether the value passed as parameter belongs to the action_space
-    """  
+    """
 
     member = envs.get_action_space_contains(instance_id, x)
-    return jsonify(member = member)
+    return jsonify(member=member)
+
 
 @app.route('/v1/envs/<instance_id>/observation_space/contains', methods=['POST'])
 def env_observation_space_contains(instance_id):
@@ -402,7 +344,8 @@ def env_observation_space_contains(instance_id):
     """
     j = request.get_json()
     member = envs.get_observation_space_contains(instance_id, j)
-    return jsonify(member = member)
+    return jsonify(member=member)
+
 
 @app.route('/v1/envs/<instance_id>/observation_space/', methods=['GET'])
 def env_observation_space_info(instance_id):
@@ -419,7 +362,8 @@ def env_observation_space_info(instance_id):
         varies from space to space
     """
     info = envs.get_observation_space_info(instance_id)
-    return jsonify(info = info)
+    return jsonify(info=info)
+
 
 @app.route('/v1/envs/<instance_id>/monitor/start/', methods=['POST'])
 def env_monitor_start(instance_id):
@@ -445,6 +389,7 @@ def env_monitor_start(instance_id):
     envs.monitor_start(instance_id, directory, force, resume, video_callable)
     return ('', 204)
 
+
 @app.route('/v1/envs/<instance_id>/monitor/close/', methods=['POST'])
 def env_monitor_close(instance_id):
     """
@@ -457,6 +402,7 @@ def env_monitor_close(instance_id):
     envs.monitor_close(instance_id)
     return ('', 204)
 
+
 @app.route('/v1/envs/<instance_id>/close/', methods=['POST'])
 def env_close(instance_id):
     """
@@ -468,6 +414,7 @@ def env_close(instance_id):
     """
     envs.env_close(instance_id)
     return ('', 204)
+
 
 @app.route('/v1/upload/', methods=['POST'])
 def upload():
@@ -485,7 +432,7 @@ def upload():
         """
     j = request.get_json()
     training_dir = get_required_param(j, 'training_dir')
-    api_key      = get_required_param(j, 'api_key')
+    api_key = get_required_param(j, 'api_key')
     algorithm_id = get_optional_param(j, 'algorithm_id', None)
 
     try:
@@ -495,12 +442,14 @@ def upload():
     except gym.error.AuthenticationError:
         raise InvalidUsage('You must provide an OpenAI Gym API key')
 
+
 @app.route('/v1/shutdown/', methods=['POST'])
 def shutdown():
     """ Request a server shutdown - currently used by the integration tests to repeatedly create and destroy fresh copies of the server running in a separate thread"""
     f = request.environ.get('werkzeug.server.shutdown')
     f()
     return 'Server shutting down'
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start a Gym HTTP API server')
