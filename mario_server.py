@@ -87,7 +87,7 @@ class Envs(object):
                 else:
                     print("unsupported color  ", observation[y, x])
 
-        data[11, 3] = 0#coin in sky
+        #data[11, 3] = 0#coin in sky
         prevValue = -1
         count = 0
         zipped_data = []
@@ -131,7 +131,7 @@ class Envs(object):
                     data[int(x/8), int(y/8)] = 1
                 else:
                     print("unsupported color  ", observation[y, x])
-        data[11, 3] = 0  # coin in sky
+        #data[11, 3] = 0  # coin in sky
 
         prevValue = -1
         count = 0
