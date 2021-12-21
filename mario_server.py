@@ -17,16 +17,73 @@ import logging
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
 
-sky = [104, 136, 252]
-white = [252, 252, 252]
-shit_in_sky = [252, 160, 68]
-black = [0, 0, 0]
-brown = [228, 92, 16]
-green = [0, 168, 0]
-light_green = [184, 248, 24]
-red = [248, 56, 0]
-bloody_red = [136, 20, 0]
-yellow = [240, 208, 176]
+sky = (104, 136, 252)
+white = (252, 252, 252)
+shit_in_sky = (252, 160, 68)
+black = (0, 0, 0)
+brown = (228, 92, 16)
+light_brown = (172, 124, 0)
+green = (0, 168, 0)
+light_green = (184, 248, 24)
+red = (248, 56, 0)
+bloody_red = (136, 20, 0)
+yellow = (240, 208, 176)
+
+
+def observation_to_zipped(observation):
+    data = np.zeros((32, 30))
+    for x in list(range(0, 256, 8)):
+        for y in list(range(0, 240, 8)):
+            pixel_map = {}
+            for x_offset in list(range(0, 8, 1)):
+                for y_offset in list(range(0, 8, 1)):
+                    if tuple(observation[y+y_offset, x+x_offset]) not in pixel_map:
+                        pixel_map[tuple(observation[y+y_offset, x+x_offset])] = 1
+                    else:
+                        pixel_map[tuple(observation[y + y_offset, x + x_offset])] = pixel_map[tuple(observation[y + y_offset, x + x_offset])] + 1
+                if x_offset > 3:
+                    max_value = 0
+                    for key, value in pixel_map.items():
+                        if value > max_value:
+                            max_value = value
+                    if max_value >= 32:
+                        break
+
+            max_value = 0
+            max_tuple = (0, 0, 0)
+            for key, value in pixel_map.items():
+                if value > max_value:
+                    max_value = value
+                    max_tuple = key
+
+            if max_tuple == sky or max_tuple == white or max_tuple == black or max_tuple == red or max_tuple == light_brown:
+                data[int(x / 8), int(y / 8)] = 0
+            elif max_tuple == brown or max_tuple == green or max_tuple == light_green or max_tuple == shit_in_sky or max_tuple == bloody_red or max_tuple == yellow:
+                data[int(x / 8), int(y / 8)] = 1
+            else:
+                print("unsupported color  ", max_tuple)
+
+    data[11, 3] = 0  # coin in sky
+    prev_value = -1
+    count = 0
+    zipped_data = []
+    for j in range(30):
+        for i in range(32):
+            if prev_value == -1:
+                prev_value = int(data[i][j])
+                count = 1
+                continue
+            count += 1
+            if prev_value != int(data[i][j]):
+                zipped_data.append(prev_value)
+                zipped_data.append(count)
+                prev_value = int(data[i][j])
+                count = 0
+    if count != 0:
+        zipped_data.append(prev_value)
+        zipped_data.append(count)
+
+    return zipped_data
 
 ########## Container for environments ##########
 class Envs(object):
@@ -75,37 +132,7 @@ class Envs(object):
     def reset(self, instance_id):
         env = self._lookup_env(instance_id)
         observation = env.reset()
-        data = np.zeros((32, 30))
-
-        for x in list(range(4, 256, 8)):
-            for y in list(range(4, 240, 8)):
-                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
-                        (observation[y, x] == red).all()):
-                    data[int(x/8), int(y/8)] = 0
-                elif (observation[y, x] == brown).all() or (observation[y, x] == green).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
-                    data[int(x/8), int(y/8)] = 1
-                else:
-                    print("unsupported color  ", observation[y, x])
-
-        data[11, 3] = 0#coin in sky
-        prevValue = -1
-        count = 0
-        zipped_data = []
-        for j in range(30):
-            for i in range(32):
-                if prevValue == -1:
-                    prevValue = int(data[i][j])
-                    count = 1
-                    continue
-                count += 1
-                if prevValue != int(data[i][j]):
-                    zipped_data.append(prevValue)
-                    zipped_data.append(count)
-                    prevValue = int(data[i][j])
-                    count = 0
-        if count != 0:
-            zipped_data.append(prevValue)
-            zipped_data.append(count)
+        zipped_data = observation_to_zipped(observation)
 
         return env.observation_space.to_jsonable(zipped_data)
 
@@ -120,37 +147,7 @@ class Envs(object):
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
         #[observation, reward, done, info] = env.step(env.action_space.sample())
-        data = np.zeros((32, 30))
-
-        for x in list(range(4, 256, 8)):
-            for y in list(range(4, 240, 8)):
-                if ((observation[y, x] == sky).all() or (observation[y, x] == white).all() or (observation[y, x] == black).all() or
-                        (observation[y, x] == red).all()):
-                    data[int(x/8), int(y/8)] = 0
-                elif (observation[y, x] == brown).all() or (observation[y, x] == green).all() or (observation[y, x] == light_green).all() or (observation[y, x] == shit_in_sky).all() or (observation[y, x] == bloody_red).all():
-                    data[int(x/8), int(y/8)] = 1
-                else:
-                    print("unsupported color  ", observation[y, x])
-        data[11, 3] = 0  # coin in sky
-
-        prevValue = -1
-        count = 0
-        zipped_data = []
-        for j in range(30):
-            for i in range(32):
-                if prevValue == -1:
-                    prevValue = int(data[i][j])
-                    count = 1
-                    continue
-                count += 1
-                if prevValue != int(data[i][j]):
-                    zipped_data.append(prevValue)
-                    zipped_data.append(count)
-                    prevValue = int(data[i][j])
-                    count = 0
-        if count != 0:
-            zipped_data.append(prevValue)
-            zipped_data.append(count)
+        zipped_data = observation_to_zipped(observation)
 
         obs_jsonable = env.observation_space.to_jsonable(zipped_data)
         #print("end  ", time.time())
