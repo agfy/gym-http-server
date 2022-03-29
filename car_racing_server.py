@@ -26,13 +26,13 @@ blue = (0, 0, 255)
 light_blue = (51, 0, 255)
 white = (255, 255, 255)
 
-def observation_to_zipped(observation):
-    data = np.zeros((32, 32))
-    for x in list(range(0, 96, 3)):
-        for y in list(range(0, 96, 3)):
+def observation_to_zipped(observation, samples):
+    data = np.zeros((int(96/samples), int(96/samples)))
+    for x in list(range(0, 96, samples)):
+        for y in list(range(0, 96, samples)):
             pixel_map = {}
-            for x_offset in list(range(0, 3, 1)):
-                for y_offset in list(range(0, 3, 1)):
+            for x_offset in list(range(0, samples, 1)):
+                for y_offset in list(range(0, samples, 1)):
                     if tuple(observation[y+y_offset, x+x_offset]) not in pixel_map:
                         pixel_map[tuple(observation[y+y_offset, x+x_offset])] = 1
                     else:
@@ -43,7 +43,7 @@ def observation_to_zipped(observation):
                     for key, value in pixel_map.items():
                         if value > max_value:
                             max_value = value
-                    if max_value >= 5:
+                    if max_value >= int(samples*samples/2):
                         break
 
             max_value = 0
@@ -56,17 +56,17 @@ def observation_to_zipped(observation):
             if max_tuple == light_green or max_tuple == dark_green or max_tuple == black or max_tuple == red \
                     or max_tuple == dark_red or max_tuple == white or max_tuple == green or max_tuple == blue \
                     or max_tuple == light_blue:
-                data[int(x / 3), int(y / 3)] = 0
+                data[int(x / samples), int(y / samples)] = 0
             elif max_tuple == grey or max_tuple == dark_grey or max_tuple == light_grey:
-                data[int(x / 3), int(y / 3)] = 1
+                data[int(x / samples), int(y / samples)] = 1
             else:
                 print("unsupported color  ", max_tuple, x, y)
 
     prev_value = -1
     count = 0
     zipped_data = []
-    for j in range(32):
-        for i in range(32):
+    for j in range(int(96/samples)):
+        for i in range(int(96/samples)):
             if prev_value == -1:
                 prev_value = int(data[i][j])
                 count = 1
@@ -98,6 +98,7 @@ class Envs(object):
     def __init__(self):
         self.envs = {}
         self.id_len = 8
+        self.samples = 1
 
     def _lookup_env(self, instance_id):
         try:
@@ -111,7 +112,7 @@ class Envs(object):
         except KeyError:
             raise InvalidUsage('Instance_id {} unknown'.format(instance_id))
 
-    def create(self, env_id, seed=None):
+    def create(self, env_id, samples, seed=None):
         try:
             env = gym.make(env_id)
             if seed:
@@ -121,6 +122,7 @@ class Envs(object):
 
         instance_id = str(uuid.uuid4().hex)[:self.id_len]
         self.envs[instance_id] = env
+        self.samples = int(samples)
         return instance_id
 
     def list_all(self):
@@ -129,7 +131,7 @@ class Envs(object):
     def reset(self, instance_id):
         env = self._lookup_env(instance_id)
         observation = env.reset()
-        zipped_data = observation_to_zipped(observation)
+        zipped_data = observation_to_zipped(observation, self.samples)
 
         return env.observation_space.to_jsonable(zipped_data)
 
@@ -144,7 +146,7 @@ class Envs(object):
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
         #[observation, reward, done, info] = env.step(env.action_space.sample())
-        zipped_data = observation_to_zipped(observation)
+        zipped_data = observation_to_zipped(observation, self.samples)
 
         obs_jsonable = env.observation_space.to_jsonable(zipped_data)
         #print("end  ", time.time())
@@ -279,8 +281,9 @@ def env_create():
         manipulated
     """
     env_id = get_required_param(request.get_json(), 'env_id')
+    samples = get_required_param(request.get_json(), 'samples')
     seed = get_optional_param(request.get_json(), 'seed', None)
-    instance_id = envs.create(env_id, seed)
+    instance_id = envs.create(env_id, samples, seed)
     return jsonify(instance_id = instance_id)
 
 @app.route('/v1/envs/', methods=['GET'])
