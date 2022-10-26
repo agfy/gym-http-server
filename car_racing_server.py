@@ -13,18 +13,16 @@ import logging
 logger = logging.getLogger('werkzeug')
 logger.setLevel(logging.ERROR)
 
-light_green = (102, 204, 102)
-dark_green = (102, 229, 102)
-light_grey = (102, 102, 102)
-grey = (105, 105, 105)
-dark_grey = (107, 107, 107)
-black = (0, 0, 0)
-dark_red = (204, 0, 0)
-red = (255, 0, 0)
-green = (0, 255, 0)
-blue = (0, 0, 255)
-light_blue = (51, 0, 255)
-white = (255, 255, 255)
+
+greys = [(105, 105, 105), (76, 76, 76), (83, 83, 83), (89, 89, 89), (100, 100, 100), (102, 102, 102), (133, 133, 133),
+         (151, 151, 151), (107, 107, 107), (148, 148, 148), (150, 150, 150), (154, 154, 154), (159, 159, 159),
+         (192, 192, 192)]
+blacks = [(0, 0, 0), (1, 1, 1), (3, 3, 3), (4, 4, 4), (5, 5, 5), (7, 7, 7), (9, 9, 9), (14, 14, 14), (15, 15, 15),
+          (18, 18, 18), (23, 23, 23), (41, 41, 41)]
+greens = [(102, 204, 102), (102, 229, 102), (0, 255, 0)]
+reds = [(255, 0, 0), (204, 0, 0)]
+blues = [(0, 0, 255), (51, 0, 255)]
+whites = [(255, 255, 255), (253, 253, 253), (252, 252, 252), (251, 251, 251), (254, 254, 254)]
 
 def observation_to_zipped(observation, samples):
     data = np.zeros((int(96/samples), int(96/samples)))
@@ -53,11 +51,9 @@ def observation_to_zipped(observation, samples):
                     max_value = value
                     max_tuple = key
 
-            if max_tuple == light_green or max_tuple == dark_green or max_tuple == black or max_tuple == red \
-                    or max_tuple == dark_red or max_tuple == white or max_tuple == green or max_tuple == blue \
-                    or max_tuple == light_blue:
+            if max_tuple in greens or max_tuple in blacks or max_tuple in reds or max_tuple in whites or max_tuple in blues:
                 data[int(x / samples), int(y / samples)] = 0
-            elif max_tuple == grey or max_tuple == dark_grey or max_tuple == light_grey:
+            elif max_tuple in greys:
                 data[int(x / samples), int(y / samples)] = 1
             else:
                 print("unsupported color  ", max_tuple, x, y)
