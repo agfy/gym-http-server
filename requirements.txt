@@ -1,5 +1,7 @@
-Flask==0.11.1
-numpy==1.20.1
+itsdangerous==2.0.1
+pyglet==1.5.27
+Flask==2.0.0
+numpy==1.21.5
 gym==0.21.0
 requests==2.11.0
 pytest
