@@ -19,12 +19,12 @@ greys = [(105, 105, 105), (76, 76, 76), (83, 83, 83), (89, 89, 89), (100, 100, 1
          (192, 192, 192)]
 blacks = [(0, 0, 0), (1, 1, 1), (3, 3, 3), (4, 4, 4), (5, 5, 5), (7, 7, 7), (9, 9, 9), (14, 14, 14), (15, 15, 15),
           (18, 18, 18), (23, 23, 23), (41, 41, 41)]
-greens = [(102, 204, 102), (102, 229, 102), (0, 255, 0)]
+greens = [(102, 204, 102), (102, 229, 102), (102, 230, 102), (0, 255, 0)]
 reds = [(255, 0, 0), (204, 0, 0)]
 blues = [(0, 0, 255), (51, 0, 255)]
 whites = [(255, 255, 255), (253, 253, 253), (252, 252, 252), (251, 251, 251), (254, 254, 254)]
 
-def observation_to_zipped(observation, samples):
+def observation_to_mask(observation, samples):
     data = np.zeros((int(96/samples), int(96/samples)))
     for x in list(range(0, 96, samples)):
         for y in list(range(0, 96, samples)):
@@ -58,26 +58,7 @@ def observation_to_zipped(observation, samples):
             else:
                 print("unsupported color  ", max_tuple, x, y)
 
-    prev_value = -1
-    count = 0
-    zipped_data = []
-    for j in range(int(96/samples)):
-        for i in range(int(96/samples)):
-            if prev_value == -1:
-                prev_value = int(data[i][j])
-                count = 1
-                continue
-            count += 1
-            if prev_value != int(data[i][j]):
-                zipped_data.append(prev_value)
-                zipped_data.append(count)
-                prev_value = int(data[i][j])
-                count = 0
-    if count != 0:
-        zipped_data.append(prev_value)
-        zipped_data.append(count)
-
-    return zipped_data
+    return data
 
 ########## Container for environments ##########
 class Envs(object):
@@ -94,7 +75,7 @@ class Envs(object):
     def __init__(self):
         self.envs = {}
         self.id_len = 8
-        self.samples = 1
+        self.samples = 3
 
     def _lookup_env(self, instance_id):
         try:
@@ -127,9 +108,9 @@ class Envs(object):
     def reset(self, instance_id):
         env = self._lookup_env(instance_id)
         observation = env.reset()
-        zipped_data = observation_to_zipped(observation, self.samples)
+        mask = observation_to_mask(observation, self.samples)
 
-        return env.observation_space.to_jsonable(zipped_data)
+        return env.observation_space.to_jsonable(mask)
 
     def step(self, instance_id, action, render):
         #print("start", time.time())
@@ -142,9 +123,9 @@ class Envs(object):
             env.render()
         [observation, reward, done, info] = env.step(nice_action)
         #[observation, reward, done, info] = env.step(env.action_space.sample())
-        zipped_data = observation_to_zipped(observation, self.samples)
+        mask = observation_to_mask(observation, self.samples)
 
-        obs_jsonable = env.observation_space.to_jsonable(zipped_data)
+        obs_jsonable = env.observation_space.to_jsonable(mask)
         #print("end  ", time.time())
         return [obs_jsonable, reward, done, info]
 
